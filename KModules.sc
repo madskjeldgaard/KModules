@@ -23,8 +23,7 @@ KModules{
     }
 
 	*addToModuleList{|modulesToAdd|
-		this.lineBreak;
-		modulesToAdd.keysDo{|k|"Adding module: %".format(k).postln};
+        // TODO
 		^moduleList.putAll(modulesToAdd.asEvent);
 	}
 
@@ -37,12 +36,14 @@ KModules{
 
             catContent.keysValuesDo{|subcat, subcatContent| 
                 // Subcategories
-                ( "\t\t" ++ subcat).postln;
+                ( "\n\t\t" ++ subcat).postln;
 
                 // Modules
                 if(subcatContent.size > 0, {
                     subcatContent.keysValuesDo{|moduleName, moduleContent|
                         ( "\t\t\t" ++ moduleName).postln;
+                        moduleContent.argNames.do{|a| "\t\t\t\targ: %".format(a).postln};
+
                     }
                 })
             }
