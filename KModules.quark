@@ -1,6 +1,6 @@
 (
     name: "KModules",
-    summary: "A range of common effects functions, written for NodeProxy Role filters",
+    summary: "A range of common effects functions, written for NodeProxy role filters",
     version: "1.0.0",
     schelp: "KModules",
     /* dependencies: ["Bjorkland", "Canvas3D", "cruciallib@tags/4.1.4"], */
