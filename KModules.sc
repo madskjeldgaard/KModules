@@ -163,7 +163,30 @@ KModules{
                     },
                 ),
                 granular: (
-                    fbgrain1: {|in, fbgrainsize = 0.25, fbgrainrand = 0.8, fbGain = 0|
+                    warpin: {|in, overlaps=0.5, windowSize=0.5, warprate=0.01, windowRand=0.01, warpScale=0.5, buffer|
+                        var bufLength = 2.0;
+
+                        var chain = LocalBuf(bufLength * SampleRate.ir, in.size).clear;
+
+                        var pointer = Phasor.ar(0, SampleDur.ir / BufDur.ir(chain) * warprate.linexp(0.0,1.0, 0.001, 100.0)); 
+
+                        RecordBuf.ar(in, chain);
+
+                        Warp1.ar(
+                            numChannels: in.size, 
+                            bufnum: chain, 
+                            pointer: pointer, 
+                            freqScale: warpScale.linlin(0.0,1.0, 0.01, 10.0),
+                            windowSize: windowSize.linlin(0.0,1.0, 0.001, 5.0), 
+                            envbufnum: -1, 
+                            overlaps: overlaps.linlin(0.0,1.0,1,16),
+                            windowRandRatio: windowRand, 
+                            interp: 4, 
+                            mul: 1, 
+                            add: 0
+                        );
+                    },
+                    fbgrain: {|in, fbgrainsize = 0.25, fbgrainrand = 0.8, fbGain = 0|
 
                         /*
                         This one was stolen from David Granström's SuperPrism project,
@@ -171,10 +194,10 @@ KModules{
                         */
 
                         var bufLength = 1.0;
-                        var localBuf = LocalBuf(bufLength * SampleRate.ir, 1).clear;
+                        var localBuf = LocalBuf(bufLength * SampleRate.ir, in.size).clear;
 
                         var warp = Warp1.ar(
-                            1,
+                            in.size,
                             localBuf,
                             LFSaw.ar(1/bufLength).linlin(-1.0,1.0,0.0, 1.0),
                             Drand([ 2, - 2 ], inf),
@@ -192,38 +215,6 @@ KModules{
                         warp = HPF.ar(warp * 0.5, 150);
                         warp.sanitize;
                     },
-
-                    fbgrain2: {|in, fbgrainsize = 0.25, fbgrainrand = 0.8, fbGain = 0|
-
-                        /*
-                        This one was stolen from David Granström's SuperPrism project,
-                        another big inspiration: github.com/davidgranstrom/SuperPrism
-                        */
-
-                        var bufLength = 1.0;
-                        var localBuf = LocalBuf(bufLength * SampleRate.ir, 2).clear;
-
-                        var warp = Warp1.ar(
-                            2,
-                            localBuf,
-                            LFSaw.ar(1/bufLength).linlin(-1.0,1.0,0.0, 1.0),
-                            Drand([ 2, - 2 ], inf),
-                            fbgrainsize.linlin(0.0, 1.0, 0.0, 2.0),
-                            -1,
-                            2,
-                            fbgrainrand.linlin(0.0, 1.0, 0.2, 1.0),
-                            4
-                        );
-
-                        // record w/ feedback
-                        RecordBuf.ar(tanh(in + HPF.ar(tanh(warp * fbGain), 30)), localBuf);
-
-                        warp = warp.tanh;
-                        warp = HPF.ar(warp * 0.5, 150);
-                        warp.sanitize;
-                    },
-
-
                 ),
                 spectral: (
                     spectraldelay: {|in, tsdelay=0.8, xsdelay = 1|
@@ -245,8 +236,7 @@ KModules{
 
                     freeze: { |in, freeze=1|
 
-                        var signal = in;
-                        var chain = Array.fill(signal.size, {|i| FFT(LocalBuf(2048), signal[i])});	
+                        var chain = Array.fill(in.size, {|i| FFT(LocalBuf(2048), in[i])});	
 
                         IFFT(PV_Freeze(chain, freeze)); 
                         
