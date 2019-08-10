@@ -1,6 +1,13 @@
+/*
+
+
+TODO: 
+- Add 1-64 channel versions of everything
+
+*/
 KModules{
 	classvar <>moduleList,
-	    <>holyControls;
+	    <>holyControls, <>numchans=2;
 
 	//this class is run during library compile time.
 	*initClass{
@@ -27,6 +34,28 @@ KModules{
 		^moduleList.putAll(modulesToAdd.asEvent);
 	}
 
+	*makeSynthDefs{
+		moduleList.keysValuesDo{|catName, catContent|
+
+			catContent.keysValuesDo{|subcat, subcatContent| 
+
+				// Modules
+				if(subcatContent.size > 0, {
+					subcatContent.keysValuesDo{|moduleName, moduleContent|
+							SynthDef((moduleName ++ numchans).asSymbol, { |in, out, wet=0.5|
+								var insig = In.ar(in, numchans);
+								var sig = SynthDef.wrap(moduleContent, prependArgs: [insig]);
+
+								sig = XFade2.ar(insig, sig, wet.linlin(0.0,1.0,-1.0,1.0));
+
+								ReplaceOut.ar(out, sig);
+							}).add;
+					}
+				})
+			}
+		};
+
+	}
 	*postModuleList{
         "There are % categories of modules available: \n".postf(moduleList.size);
         moduleList.keysValuesDo{|catName, catContent|
