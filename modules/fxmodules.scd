@@ -1,3 +1,4 @@
+// TODO: Make sure all fx are multi channel ready
 {|numchans|
 	(
 		pitch: (
@@ -19,9 +20,50 @@
 			},
 		),
 		time: (
+			// Ring modulation stolen from SuperDirt. ring=modilation amount, ringf=modfreq,ringdf=slide in modfreq
+			dirtring: { |in, ring = 0.5, ringf = 0.5, ringdf=0.5|
+				var signal, mod;
+				signal = in;
+				ringf = ringf.linexp(0.0,1.0,1.0,20000.0);
+				mod = ring * SinOsc.ar(Clip.kr(XLine.kr(ringf, ringf + ringdf), 20, 20000));
+				ring1(signal, mod);
+			},
 			freqshift: {|in, freq=0.1, phase=0|
 				FreqShift.ar(in, freq*2, phase.linlin(0.0, 1.0, -2pi, 2pi))
 			},
+
+			// Phaser taken from SuperDirt
+			// https://github.com/musikinformatik/SuperDirt/blob/develop/synths/core-synths.scd
+			phaser: { |in, phaserrate = 1.0, phaserdepth = 0.5|
+				var signal, phaserwave;
+				var phase =  LFPar.kr(phaserrate).range(0.0088, 0.01);
+
+				phaserdepth = phaserdepth.clip(0, 1);
+
+				signal = in;
+
+				phaserwave = AllpassL.ar(signal, 4, phase, 0, phaserdepth);
+
+				(signal + phaserwave)/2;
+			},
+
+			// Also taken from SuperDirt
+			shaper: { |in, shape = 0|
+				var signal = in;
+				shape = shape.clip(0.0,0.90);
+
+				shape = min(shape, 1.0 - 4e-10); // avoid division by zero
+				//amp = 1.0 - (0.15 * shape / (shape + 2.0)) * amp; // optional gain comp
+				shape = (2.0 * shape) / (1.0 - shape);
+
+				LeakDC.ar((1 + shape) * signal / (1 + (shape * abs(signal))));
+			},
+
+			// Also taken from SuperDirt
+			bitcrush: { |in, crush = 0.1|
+				var signal = in;
+				signal.round(0.5 ** (crush.linlin(0.0,1.0,16,1)-1));
+			},			
 
 			delay: {|in, delay=1|
 				CombC.ar(in, 4, 0.1 + (delay * 2).clip(0.0, 2.0), 0.1 + (delay*3)).tanh

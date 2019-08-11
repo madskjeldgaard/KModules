@@ -38,6 +38,7 @@ KModules {
 	*new{ |numchans=2|
 		^super.new.init(numchans)
 	}
+
 	crawl{ |doFunction|
 		moduleList.keysValuesDo{|subcat, subcatContent|
 			// Modules
@@ -48,6 +49,7 @@ KModules {
 			})
 		}
 	}
+
 	addSynthDefs{
 		synthdefs.do{ |def|
 
@@ -98,7 +100,6 @@ KModules {
 		"\n".post;
 
 	}
-
 }
 
 // Manage fx synths
