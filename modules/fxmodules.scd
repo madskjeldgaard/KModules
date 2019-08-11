@@ -28,6 +28,43 @@
 				mod = ring * SinOsc.ar(Clip.kr(XLine.kr(ringf, ringf + ringdf), 20, 20000));
 				ring1(signal, mod);
 			},
+			// Taken from Thor Magnussons book Scoring Sound: https://leanpub.com/ScoringSound/read#leanpub-auto-flanger 
+			flanger: { |in, flangdelay=0.1, flangdepth=0.08, flangrate=0.06, flangfb=0.01, decay=0.0|
+				var input, maxdelay, maxrate, dsig, mixed, local;
+				maxdelay = 0.013;
+				maxrate = 10.0;
+				input = in;
+				local = LocalIn.ar(1, numchans);
+
+				// the delay (you could use AllpassC (put 0 in decay))
+				dsig = AllpassC.ar( 
+					input + (local * flangfb),
+					maxdelay * 2,
+					// very similar to SinOsc (try to replace it) - Even use LFTri
+					LFPar.kr( 
+						flangrate * maxrate,
+						0,
+						flangdepth * maxdelay,
+						flangdelay * maxdelay
+					),
+					decay
+				);
+
+				mixed = input + dsig;
+				LocalOut.ar(mixed);
+				mixed;
+			}, 
+			// Taken from Thor Magnussons book Scoring Sound: https://leanpub.com/ScoringSound/read#leanpub-auto-chorus 
+			chorus: { |in, chpredelay=0.08, chspeed=0.05, chdepth=0.1, chphasediff=0.5|
+				var sig, modulators, numDelays = 12;
+				in = in * numDelays.reciprocal;
+				modulators = Array.fill(numDelays, {arg i;
+					LFPar.kr(chspeed * rrand(0.94, 1.06), chphasediff * i, chdepth, chpredelay)}
+				); 
+				sig = DelayC.ar(in, 0.5, modulators);  
+				sig.sum!numchans;
+			},
+
 			freqshift: {|in, freq=0.1, phase=0|
 				FreqShift.ar(in, freq*2, phase.linlin(0.0, 1.0, -2pi, 2pi))
 			},
