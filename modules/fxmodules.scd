@@ -55,14 +55,14 @@
 				mixed;
 			}, 
 			// Taken from Thor Magnussons book Scoring Sound: https://leanpub.com/ScoringSound/read#leanpub-auto-chorus 
-			chorus: { |in, chpredelay=0.08, chspeed=0.05, chdepth=0.1, chphasediff=0.5|
+			chorus: { |in, chpredelay=0.08, chrate=0.05, chdepth=0.1, chphasediff=0.5|
 				var sig, modulators, numDelays = 12;
 				in = in * numDelays.reciprocal;
 				modulators = Array.fill(numDelays, {arg i;
-					LFPar.kr(chspeed * rrand(0.94, 1.06), chphasediff * i, chdepth, chpredelay)}
+					LFPar.kr(chrate * rrand(0.94, 1.06), chphasediff * i, chdepth, chpredelay)}
 				); 
 				sig = DelayC.ar(in, 0.5, modulators);  
-				sig.sum!numchans;
+				numDelays.reciprocal * sig.sum!numchans;
 			},
 
 			freqshift: {|in, freq=0.1, phase=0|
