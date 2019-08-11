@@ -101,8 +101,8 @@ KModules {
 
 }
 
+// Manage fx synths
 Kfx : KModules {
-
 	loadFile{
 		^(quarkpath +/+ "modules" +/+ "fxmodules.scd").load;
 	}
@@ -130,7 +130,7 @@ Kfx : KModules {
 	}
 }
 
-// TODO:
+// Manage source synths
 Ksrcs : KModules {
 	loadFile{
 		^(quarkpath +/+ "modules" +/+ "srcmodules.scd").load;
