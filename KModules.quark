@@ -1,9 +1,9 @@
 (
     name: "KModules",
-    summary: "A range of common effects functions, written for NodeProxy role filters",
-    version: "1.0.0",
+    summary: "A synth library including tedious factory functions for creating and managing synths",
+    version: "1.0.2",
     schelp: "KModules",
-    /* dependencies: ["Bjorkland", "Canvas3D", "cruciallib@tags/4.1.4"], */
+    dependencies: ["Ctk"],
     license: "GPL",
     url: "https://github.com/madskjeldgaard/KModules",
     copyright: "Mads Kjeldgaard, 2018"
