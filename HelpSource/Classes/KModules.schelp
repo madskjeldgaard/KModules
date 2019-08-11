@@ -1,65 +1,38 @@
 TITLE:: KModules
-summary:: A range of common effects functions, written for NodeProxy role filters 
+summary:: A collection of sound functions that are easily used in conjunction with
+NodeProxy Roles in SC
 categories:: Undocumented classes
 related:: Classes/NodeProxy
 
 DESCRIPTION::
-A collection of sound functions that are easily used in conjunction with
-NodeProxy Roles in SC
+
+A synth library including tedious factory functions for creating and managing synths
+
 
 CLASSMETHODS::
 
-METHOD:: addToModuleList
-Add a function to the list of modules available globally
-
-ARGUMENT:: modulesToAdd
-A dictionary containing a key and a function
-
-returns:: Dictionary
-
-METHOD:: lineBreak
-A cute, random linebreak-poster
-
-ARGUMENT:: length
-Integer
-
-METHOD:: loadDefaultKModules
-This loads the default moduels in the class on class init. You don't need to
-touch this normally
-
-METHOD:: postModuleList
-Post a list of available modules
-
 INSTANCEMETHODS::
-
 
 EXAMPLES::
 
 code::
-// Load a buffer
-b = Buffer.read(s, "path/to/soundfile.wav");
-
 // Get a list of modules
-k = KModules.new;
+k = Kfx.new;
 
-// Set a buffer player as source
-Ndef('buf')[0] = k['src']['bufplayer1'];
-
-// Set a buffer
-Ndef('buf').set(\buffer, b);
+Ndef('spectralnoise')[0] = { PinkNoise.ar(0.5) };
 
 // Play it
-Ndef('buf').play;
+Ndef('spectralnoise').play;
 
 // Add a random spectral fx!
-Ndef('buf')[1] = \filter -> k['fx']['spectral'].choose;
+Ndef('spectralnoise')[1] = \filter -> k['fx']['spectral'].choose;
 
 // Add a second random spectral fx!!
-Ndef('buf')[2] = \filter -> k['fx']['spectral'].choose;
+Ndef('spectralnoise')[2] = \filter -> k['fx']['spectral'].choose;
 
 // Add a third random spectral fx!!!
-Ndef('buf')[3] = \filter -> k['fx']['spectral'].choose;
+Ndef('spectralnoise')[3] = \filter -> k['fx']['spectral'].choose;
 
 // Play around with the dry/wet parameters for each effect
-Ndef('buf').set(\wet1, 0.5, \wet2, 0.25, \wet3, 0.66);
+Ndef('spectralnoise').set(\wet1, 0.5, \wet2, 0.25, \wet3, 0.66);
 ::
