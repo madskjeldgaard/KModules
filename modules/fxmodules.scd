@@ -1,11 +1,25 @@
 // TODO: Make sure all fx are multi channel ready
 {|numchans|
 	(
+		dynamics: (
+			limiter: {|in, level=0.95|
+				Limiter.ar(in, level)
+			}
+		),
 		pitch: (
-			pitchshift: {|in, grain=0.25, pitch=1, pd=0, td=0|
+			pitchshift: {|in, grain=0.25, pitch=0.01, pd=0.001, td=0.001|
 				PitchShift.ar(in, 0.001 + grain, 0.01 + (pitch*4), pd, td)
 			},
-
+			pitchshiftpa: {|in, pitch=0.1, formantratio=0.25, pitchratio=0.25, grainsperiod=0.1|
+				PitchShiftPA.ar(in, 
+					pitch.linexp(0.0,1.0,20.0,12000.0),  
+					pitchRatio: pitchratio.linlin(0.0,1.0,0.25,5.0),  
+					formantRatio: formantratio.linlin(0.0,1.0,0.25,5.0),
+					minFreq: 10,  
+					maxFormantRatio: 10,  
+					grainsPeriod: grainsperiod.linlin(0.0,1.0,1,10) 
+				)
+			},
 			ranpitchshift: {|in, grain=0.25, pitch=1, pitchspread=0.0|
 				var numpitchs=5;
 				var rp = {rrand(0.1, 4.0)}!numpitchs;
@@ -20,23 +34,38 @@
 			},
 		),
 		time: (
+			haas: { |in, haasrate=0.01|
+
+				// A line going from 0ms to 35 ms in 30 seconds, to control the delay
+				var mod = LFPar.kr(haasrate).range(0.001, 0.035).poll;
+				var sig = Array.fill(in.size, {|i|
+					if(i.odd, {
+						// delayed
+						AllpassC.ar(in[i], delaytime: mod, decaytime: mod);
+					}, {
+						// Dry
+						in[i]
+					})
+
+				});
+
+				sig
+			},
 			// Ring modulation stolen from SuperDirt. ring=modilation amount, ringf=modfreq,ringdf=slide in modfreq
-			dirtring: { |in, ring = 0.5, ringf = 0.5, ringdf=0.5|
+			dirtring: { |in, ringf = 0.5, ringdf=0.15|
 				var signal, mod;
 				signal = in;
-				ringf = ringf.linexp(0.0,1.0,1.0,20000.0);
-				mod = ring * SinOsc.ar(Clip.kr(XLine.kr(ringf, ringf + ringdf), 20, 20000));
-				ring1(signal, mod);
+				mod = SinOsc.ar(XLine.kr(ringf, ringf + ringdf).linexp(0.0,1.0,20,20000));
+				ring1(signal, mod)/2;
 			},
 			// Taken from Thor Magnussons book Scoring Sound: https://leanpub.com/ScoringSound/read#leanpub-auto-flanger 
-			flanger: { |in, flangdelay=0.1, flangdepth=0.08, flangrate=0.06, flangfb=0.01, decay=0.0|
+			flanger: { |in, flangdelay=0.1, flangdepth=0.08, flangrate=0.06, flangfb=0.01|
 				var input, maxdelay, maxrate, dsig, mixed, local;
 				maxdelay = 0.013;
 				maxrate = 10.0;
 				input = in;
 				local = LocalIn.ar(1, numchans);
 
-				// the delay (you could use AllpassC (put 0 in decay))
 				dsig = AllpassC.ar( 
 					input + (local * flangfb),
 					maxdelay * 2,
@@ -47,7 +76,7 @@
 						flangdepth * maxdelay,
 						flangdelay * maxdelay
 					),
-					decay
+					0
 				);
 
 				mixed = input + dsig;
@@ -102,17 +131,41 @@
 				signal.round(0.5 ** (crush.linlin(0.0,1.0,16,1)-1));
 			},			
 
-			delay: {|in, delay=1|
-				CombC.ar(in, 4, 0.1 + (delay * 2).clip(0.0, 2.0), 0.1 + (delay*3)).tanh
+			delay: {|in, delay=1, delayfb=0.025|
+				CombC.ar(in, 0.25, delay * 3, delayfb.linexp(0.0,1.0,1.0,8.0))
 			},
 
-			reverb1: {|in, damp=0.15, size=0.25|
+			freeverb1: {|in, damp=0.15, size=0.25|
 				FreeVerb.ar(in, 1.0, size, damp);
 			},
 
-			reverb2: {|in, damp=0.15, size=0.25|
+			freeverb2: {|in, damp=0.15, size=0.25|
+				in = LeakDC.ar(in);
 				FreeVerb2.ar(in[0], in[1], 1.0, size, damp);
 			},
+
+			gverb: {|in, damp=0.005, size=0.25, verbtime=0.25, spread=1.0|
+				in = LeakDC.ar(in);
+				GVerb.ar(in, size.linexp(0.0,1.0,3.0,500.0), verbtime.linexp(0.0,1.0,1.0,60.0), damp, 0.0, spread, 0,  earlyreflevel: 0.7,  taillevel: 0.7,  maxroomsize: 500,  mul: 1,  add: 0)
+			},
+
+			// jpverb: {|in, size=0.25, verbmod=0.1, verbmodfreq=0.01, damp=0.15|
+			// 	JPverb.ar(
+			// 		LeakDC.ar(Splay.ar(in)), 
+			// 		size.linexp(0.0,1.0,1.0,60.0), 
+			// 		damp, 
+			// 		size.linlin(0.0,1.0,0.5,5.0),  
+			// 		0.707, 
+			// 		verbmod, 
+			// 		verbmodfreq.linexp(0.0,1.0,0.0,10.0),  
+			// 		low: 1.0,  
+			// 		mid: 1.0,  
+			// 		high: 1.0,  
+			// 		lowcut: 500.0,  
+			// 		highcut: 2000.0
+			// 	).poll;
+			// },
+
 		),
 		destruction: (
 			ringmod: {|in, carfreq=0.1|
@@ -130,6 +183,24 @@
 
 		),
 		filter: (
+			lpf: {|in, cutoff=0.5,res=0.5|
+				DFM1.ar(in, 
+					cutoff.linexp(0.0,1.0,40.0,20000.0),  
+					res: res,  
+					inputgain: 1.0,  
+					type: 0.0,   // LPF
+					noiselevel: 0.0
+				)
+			},
+			hpf: {|in, cutoff=0.5,res=0.5|
+				DFM1.ar(in, 
+					cutoff.linexp(0.0,1.0,40.0,20000.0),  
+					res: res,  
+					inputgain: 1.0,  
+					type: 1.0,   // HPF
+					noiselevel: 0.0
+				)
+			},
 			klank1: {|in, klankf1=0.01, klankf2=0.1, klankf3=0.5, klankf4=0.33|
 
 				DynKlank.ar(`[
@@ -185,7 +256,7 @@
 					add: 0
 				);
 			},
-			fbgrain: {|in, fbgrainsize = 0.25, fbgrainrand = 0.8, fbGain = 0|
+			fbgrain: {|in, fbgrainsize = 0.25, fbgrainrand = 0.8, fbGain = 0.1|
 
 				/*
 				This one was stolen from David Granström's SuperPrism project,
@@ -234,7 +305,7 @@
 			freeze: {|in, freeze=1|
 				var chain = Array.fill(numchans, {|i| FFT(LocalBuf(2048), in[i])});	
 
-				in.poll;
+				in;
 				IFFT(PV_BinScramble(chain, 0.5, 0.85)); 
 			},
 
@@ -303,12 +374,78 @@
 
 			},
 
-			diffuser: {|in, diffuse=0.2|
+			diffuse: {|in, diffuse=0.5|
 				var chain = Array.fill(numchans, {|i| FFT(LocalBuf(2048), in[i])});	
 
 				IFFT(PV_Diffuser(chain, Dust.kr(diffuse.linlin(0.0,1.0,0.0,10.0)))); 
 
 			},
-		)
+		),
+		// fb: (
+		// 	fb1a: { |input, lpf=10000, lfofreq=0.5|
+		// 		var sig, lfo = LFDNoise3.ar(lfofreq).linexp(-1, 1, 0.5, 100);
+
+		// 		sig = LPF.ar(
+		// 			Fb1({ |in, out|
+		// 				// in[1][0] represents previous 2 channel samples from inSig
+		// 				// in[0][1] represents current sample from lfo
+
+		// 				// reverse causes cross-feedback of 2 main channels
+		// 				// main feedback crosses with helper feedback
+		// 				[
+		// 					// for main feedback use helper feedback
+		// 					(out[1][1] / max(0.001, (in[1][0] - out[1][0].reverse).abs)).tanh,
+		// 					// for helper feedback use first channel of main feedback
+		// 					(out[1][0][0] + 0.1 / max(0.01, ((in[0][1].abs)))).tanh
+		// 				]
+		// 				// outSize [2, 0] has to be passed
+		// 			}, [input.poll, lfo], [2, 0], [2, 1], 2
+		// 		), lpf) * 0.2;
+		// 		// return main feedback
+		// 		sig[0].tanh
+		// 	},
+		// 	fb1b: {|in|
+		// 		var inSig = in;
+		// 		var lfo = LFDNoise3.ar(1).linexp(-1, 1, 0.2, 10);
+		// 		inSig = LPF.ar(
+		// 			Fb1({ |in, out|
+		// 				(in[1][0] * in[0][1] / max(0.001, (in[1][0] - out[1].reverse).abs)).tanh
+		// 			}, [inSig, lfo], 2, [2, 1], 2
+		// 		), 15000) * 0.1;
+
+		// 		inSig
+		// 	},
+		// 	fb1c: { |input|
+		// 		var sig;
+		// 		var src = input.sum;//LFDNoise3.ar(1, 0.1);
+		// 		// ar modulators to be passed (avoid annoying steady tone caused by kr)
+		// 		var mod1 = LFDNoise3.ar(1).range(0.01, 0.2);
+
+		// 		// already slight difference results in quite strong stereo decorrelation
+		// 		var mod2 = LFDNoise3.ar(1).range([0.0001, 0.0002],  0.0049);
+
+		// 		sig = Fb1({ |in, out|
+		// 			// give same names as above for better readability
+		// 			var src = in[0][0];
+		// 			var mod1 = in[0][1];
+		// 			var mod2 = in[0][2];
+		// 			softclip(
+		// 				Select.kr(
+		// 					// as mod2 is stereo we get stereo expansion
+		// 					// and in turn different selections
+
+		// 					// outDepth = [[1, 6]]
+		// 					// so out[0] refers to out[i-1], out[1] to out[i-6]
+
+		// 					out[0] % 0.005 < mod2,
+		// 					[out[1].neg * mod1, out[0] * 0.1]
+		// 				) + src + out[0]
+		// 			)
+		// 			// lopass filtering with lag
+		// 		}, [src, mod1, mod2], 2, 1, [[1, 6]]).lag(0.001) * 0.05;
+
+		// 		Limiter.ar(sig)
+		// 	}
+		// )
 	)
 }

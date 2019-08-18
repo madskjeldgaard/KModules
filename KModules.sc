@@ -1,5 +1,5 @@
 KModules {
-	var moduleList, synthdefs, ctkprotonotes, quarkpath;
+	var moduleList, synthdefs, ctkprotonotes, quarkpath, modulenames;
 
 	//this class is run during library compile time.
 	*initClass{
@@ -23,7 +23,7 @@ KModules {
 
 		synthdefs = [];
 		ctkprotonotes = CtkProtoNotes.new;
-
+		modulenames = Array.new;
 		moduleList = IdentityDictionary.new;
 		moduleList.putAll(loadedfxmodules);
 
@@ -31,6 +31,12 @@ KModules {
 		this.makeSynthDefs(numchans);
 		this.addSynthDefs();
 		this.addCtkDefs();
+
+		// Gather module names
+		loadedfxmodules.isNil.not(
+			this.crawl({|synthname, synthfunc| modulenames = modulenames.add(synthname)});
+		);
+
 
 		^this;
 	}
@@ -73,6 +79,10 @@ KModules {
 		^synthdefs
 	}
 
+	names{
+		^modulenames
+	}
+
 	asCtkProtoNotes{
 		^ctkprotonotes	
 	}
@@ -112,7 +122,7 @@ Kfx : KModules {
 		var makesynth = {|moduleName, moduleContent|
 
 			// Create synthdef
-			var def = SynthDef((moduleName ++ numchans).asSymbol, { |in, out, wet=0.5|
+			var def = SynthDef((moduleName ++ numchans).asSymbol, { |in, out, wet=1.0|
 				var insig = In.ar(in, numchans);
 				var sig = SynthDef.wrap(moduleContent, prependArgs: [insig]);
 
@@ -141,10 +151,10 @@ Ksrcs : KModules {
 		var makesynth = {|moduleName, moduleContent|
 
 			// Create synthdef
-			var def = SynthDef((moduleName ++ numchans).asSymbol, { |in, out|
+			var def = SynthDef((moduleName ++ numchans).asSymbol, { |out, amp=0.1|
 				var sig = SynthDef.wrap(moduleContent);
 
-				OffsetOut.ar(out, sig);
+				OffsetOut.ar(out, sig*amp);
 			});
 
 			// Add to global synthdef array of instance
