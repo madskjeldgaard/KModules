@@ -1,5 +1,7 @@
 # KModules
 
+__This project has been abandoned__ in favour of [Sleet](https://github.com/madskjeldgaard/sleet)
+
 A synth library including tedious factory functions for creating and managing synths
 
 It takes files containing synth functions and manages them, ie makes SynthDefs and adds them to the system, makes a dictionary for usage with Ctk and a library of functions useful for Ndef filters.
